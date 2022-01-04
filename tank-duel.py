@@ -1,13 +1,27 @@
 import pygame as pg
 import numpy as np
-# import os
 import sys
 from pygame import time
 from params import *
 
 
 class Player(pg.sprite.Sprite):
-    pass
+    def __init__(self, pos_x, pos_y, direc, im, sign):
+        super().__init__(player_group)
+        self.direc = direc
+        self.image = pg.transform.rotate(im, -90 * self.direc)
+        self.pos = (pos_x, pos_y)
+        self.sign = sign
+        self.rect = self.image.get_rect().move(tile_width * self.pos[0],
+                                               tile_height * self.pos[1])
+
+    def move(self, x, y, new_direc):
+        self.image = pg.transform.rotate(pg.transform.rotate(self.image, 90 * self.direc), -90 * new_direc)
+        self.direc = new_direc
+        self.pos = (x, y)
+        self.rect = self.image.get_rect().move(tile_width * self.pos[0],
+                                               tile_height * self.pos[1])
+        level_map[y, x] = self.sign
 
 
 class Tile(pg.sprite.Sprite):
@@ -31,7 +45,7 @@ def load_level(number):
 
 
 def generate_level(level):
-    new_player, x, y = None, None, None
+    new_player, new_player2, x, y = None, None, None, None
     row, col = level.shape
     for y in range(row):
         for x in range(col):
@@ -41,11 +55,15 @@ def generate_level(level):
                 Tile("bricks", x, y)
             elif level[y][x] == "=":
                 Tile("water", x, y)
-            elif level[y][x] == "@" or level[y][x] == "%":
+            elif level[y][x] == "@":
                 Tile("empty", x, y)
                 level_map[y, x] = "."
-                new_player = Player(x, y)
-    return new_player, x, y
+                new_player = Player(x, y, 1, player_image, "@")
+            elif level[y][x] == "%":
+                Tile("empty", x, y)
+                level_map[y, x] = "."
+                new_player2 = Player(x, y, 3, player2_image, "%")
+    return new_player, new_player2, x, y
 
 
 def terminate():
@@ -81,8 +99,24 @@ def start_screen():
         clock.tick(FPS)
 
 
-def move_player(player, movement):
-    pass
+def move_player(pl, movement):  # Здесь pl является сокращением от слова player
+    x, y = pl.pos
+    if movement == 'up':
+        if y > 0 and level_map[y - 1, x] == '.':
+            level_map[y, x] = "."
+            pl.move(x, y - 1, 3)
+    elif movement == 'down':
+        if y < level_y - 1 and level_map[y + 1, x] == '.':
+            level_map[y, x] = "."
+            pl.move(x, y + 1, 1)
+    elif movement == 'left':
+        if x > 0 and level_map[y, x - 1] == '.':
+            level_map[y, x] = "."
+            pl.move(x - 1, y, 2)
+    elif movement == 'right':
+        if x < level_x - 1 and level_map[y, x + 1] == '.':
+            level_map[y, x] = "."
+            pl.move(x + 1, y, 0)
 
 
 if __name__ == "__main__":
@@ -97,7 +131,8 @@ if __name__ == "__main__":
         "empty": pg.image.load(os.path.join(PIC, "grass.png"))
     }
 
-    # player_image = pg.image.load(os.path.join(PIC, ''))  # TODO: Поставить игрока
+    player_image = pg.image.load(os.path.join(PIC, 'player_1.png'))
+    player2_image = pg.image.load(os.path.join(PIC, 'player_2.png'))
 
     tile_width = tile_height = 50
 
@@ -111,7 +146,7 @@ if __name__ == "__main__":
 
     level_map = load_level(number_level)
 
-    player, level_x, level_y = generate_level(level_map)
+    player, player2, level_x, level_y = generate_level(level_map)
 
     running = True
     while running:
@@ -120,12 +155,20 @@ if __name__ == "__main__":
                 running = False
             elif event.type == pg.KEYDOWN:
                 if event.key == pg.K_UP:
-                    move_player(player, 'up')
+                    move_player(player2, 'up')
                 elif event.key == pg.K_DOWN:
-                    move_player(player, 'down')
+                    move_player(player2, 'down')
                 elif event.key == pg.K_LEFT:
-                    move_player(player, 'left')
+                    move_player(player2, 'left')
                 elif event.key == pg.K_RIGHT:
+                    move_player(player2, 'right')
+                elif event.key == pg.K_w:
+                    move_player(player, 'up')
+                elif event.key == pg.K_s:
+                    move_player(player, 'down')
+                elif event.key == pg.K_a:
+                    move_player(player, 'left')
+                elif event.key == pg.K_d:
                     move_player(player, 'right')
         screen.fill(pg.Color('black'))
         tiles_group.draw(screen)
