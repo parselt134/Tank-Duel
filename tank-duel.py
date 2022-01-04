@@ -6,17 +6,23 @@ from params import *
 
 
 class Player(pg.sprite.Sprite):
-    def __init__(self, pos_x, pos_y, im):
+    def __init__(self, pos_x, pos_y, direc, im):
         super().__init__(player_group)
-        self.image = im
+        self.direc = direc
+        self.image = pg.transform.rotate(im, -90 * self.direc)
         self.pos = (pos_x, pos_y)
         self.rect = self.image.get_rect().move(tile_width * self.pos[0],
                                                tile_height * self.pos[1])
 
-    def move(self, x, y):
+    def move(self, x, y, new_direc):
+        self.image = pg.transform.rotate(pg.transform.rotate(self.image, 90 * self.direc), -90 * new_direc)
+        self.direc = new_direc
         self.pos = (x, y)
         self.rect = self.image.get_rect().move(tile_width * self.pos[0],
                                                tile_height * self.pos[1])
+
+    def get_pos(self):
+        return self.pos
 
 
 class Tile(pg.sprite.Sprite):
@@ -53,11 +59,11 @@ def generate_level(level):
             elif level[y][x] == "@":
                 Tile("empty", x, y)
                 level_map[y, x] = "."
-                new_player = Player(x, y, player_image)
+                new_player = Player(x, y, 2, player_image)
             elif level[y][x] == "%":
                 Tile("empty", x, y)
                 level_map[y, x] = "."
-                new_player2 = Player(x, y, player2_image)
+                new_player2 = Player(x, y, 0, player2_image)
     return new_player, new_player2, x, y
 
 
@@ -98,16 +104,16 @@ def move_player(pl, movement):
     x, y = pl.pos
     if movement == 'up':
         if y > 0 and level_map[y - 1, x] == '.':
-            pl.move(x, y - 1)
+            pl.move(x, y - 1, 0)
     elif movement == 'down':
         if y < level_y - 1 and level_map[y + 1, x] == '.':
-            pl.move(x, y + 1)
+            pl.move(x, y + 1, 2)
     elif movement == 'left':
         if x > 0 and level_map[y, x - 1] == '.':
-            pl.move(x - 1, y)
+            pl.move(x - 1, y, 3)
     elif movement == 'right':
         if x < level_x - 1 and level_map[y, x + 1] == '.':
-            pl.move(x + 1, y)
+            pl.move(x + 1, y, 1)
 
 
 if __name__ == "__main__":
