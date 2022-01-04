@@ -58,11 +58,11 @@ def generate_level(level):
             elif level[y][x] == "@":
                 Tile("empty", x, y)
                 level_map[y, x] = "."
-                new_player = Player(x, y, 1, player_image, "@")
+                new_player = Player(x, y, 2, player_image, "@")
             elif level[y][x] == "%":
                 Tile("empty", x, y)
                 level_map[y, x] = "."
-                new_player2 = Player(x, y, 3, player2_image, "%")
+                new_player2 = Player(x, y, 0, player2_image, "%")
     return new_player, new_player2, x, y
 
 
@@ -104,19 +104,19 @@ def move_player(pl, movement):  # Здесь pl является сокраще�
     if movement == 'up':
         if y > 0 and level_map[y - 1, x] == '.':
             level_map[y, x] = "."
-            pl.move(x, y - 1, 3)
+            pl.move(x, y - 1, 0)
     elif movement == 'down':
         if y < level_y - 1 and level_map[y + 1, x] == '.':
             level_map[y, x] = "."
-            pl.move(x, y + 1, 1)
+            pl.move(x, y + 1, 2)
     elif movement == 'left':
         if x > 0 and level_map[y, x - 1] == '.':
             level_map[y, x] = "."
-            pl.move(x - 1, y, 2)
+            pl.move(x - 1, y, 3)
     elif movement == 'right':
         if x < level_x - 1 and level_map[y, x + 1] == '.':
             level_map[y, x] = "."
-            pl.move(x + 1, y, 0)
+            pl.move(x + 1, y, 1)
 
 
 if __name__ == "__main__":
