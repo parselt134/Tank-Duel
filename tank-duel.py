@@ -148,6 +148,10 @@ if __name__ == "__main__":
 
     player, player2, level_x, level_y = generate_level(level_map)
 
+    battle_sound = pg.mixer.Sound(os.path.join(SOUND, "tank_duel_music.ogg"))
+    battle_sound.set_volume(0.2)
+    battle_sound.play(-1)
+
     running = True
     while running:
         for event in pg.event.get():
