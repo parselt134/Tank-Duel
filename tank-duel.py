@@ -6,11 +6,12 @@ from params import *
 
 
 class Player(pg.sprite.Sprite):
-    def __init__(self, pos_x, pos_y, direc, im):
+    def __init__(self, pos_x, pos_y, direc, im, sign):
         super().__init__(player_group)
         self.direc = direc
         self.image = pg.transform.rotate(im, -90 * self.direc)
         self.pos = (pos_x, pos_y)
+        self.sign = sign
         self.rect = self.image.get_rect().move(tile_width * self.pos[0],
                                                tile_height * self.pos[1])
 
@@ -20,9 +21,36 @@ class Player(pg.sprite.Sprite):
         self.pos = (x, y)
         self.rect = self.image.get_rect().move(tile_width * self.pos[0],
                                                tile_height * self.pos[1])
+        level_map[y, x] = self.sign
 
-    def get_pos(self):
-        return self.pos
+    def shot(self):
+        if self.direc == 0:
+            Bullet(self.pos[0], self.pos[1] - 1, (0, -1))
+        elif self.direc == 1:
+            Bullet(self.pos[0] + 1, self.pos[1], (1, 0))
+        elif self.direc == 2:
+            Bullet(self.pos[0], self.pos[1] + 1, (0, 1))
+        elif self.direc == 3:
+            Bullet(self.pos[0] - 1, self.pos[1], (-1, 0))
+
+
+class Bullet(pg.sprite.Sprite):
+    def __init__(self, pos_x, pos_y, v):
+        super().__init__(bullet_group)
+        self.v = v
+        self.image = bullet_image
+        self.pos = (pos_x, pos_y)
+        self.rect = self.image.get_rect().move(tile_width * pos_x,
+                                               tile_height * pos_y)
+
+    def update(self):
+        if time_bullet >= 0.3:
+            if 10 > self.pos[0] + self.v[0] > -1 and 10 > self.pos[1] + self.v[1] > -1:
+                self.pos = (self.pos[0] + self.v[0], self.pos[1] + self.v[1])
+                self.rect = self.image.get_rect().move(tile_width * self.pos[0],
+                                                       tile_height * self.pos[1])
+            else:
+                self.kill()
 
 
 class Tile(pg.sprite.Sprite):
@@ -58,12 +86,10 @@ def generate_level(level):
                 Tile("water", x, y)
             elif level[y][x] == "@":
                 Tile("empty", x, y)
-                level_map[y, x] = "."
-                new_player = Player(x, y, 2, player_image)
+                new_player = Player(x, y, 2, player_image, "@")
             elif level[y][x] == "%":
                 Tile("empty", x, y)
-                level_map[y, x] = "."
-                new_player2 = Player(x, y, 0, player2_image)
+                new_player2 = Player(x, y, 0, player2_image, "%")
     return new_player, new_player2, x, y
 
 
@@ -75,7 +101,7 @@ def terminate():
 def start_screen():
     intro_text = ["Tank Duel", "", "",
                   "Нажмите любую клавишу", ""
-                  "для начала игры"]  # TODO: заголовок
+                  "для начала игры"]
     fon = pg.image.load(os.path.join(PIC, "start_screen.png"))
     screen.blit(fon, (0, 0))
     font = pg.font.Font(None, 35)
@@ -100,19 +126,23 @@ def start_screen():
         clock.tick(FPS)
 
 
-def move_player(pl, movement):
+def move_player(pl, movement):  # Здесь pl является сокращением от слова player
     x, y = pl.pos
     if movement == 'up':
         if y > 0 and level_map[y - 1, x] == '.':
+            level_map[y, x] = "."
             pl.move(x, y - 1, 0)
     elif movement == 'down':
         if y < level_y - 1 and level_map[y + 1, x] == '.':
+            level_map[y, x] = "."
             pl.move(x, y + 1, 2)
     elif movement == 'left':
         if x > 0 and level_map[y, x - 1] == '.':
+            level_map[y, x] = "."
             pl.move(x - 1, y, 3)
     elif movement == 'right':
         if x < level_x - 1 and level_map[y, x + 1] == '.':
+            level_map[y, x] = "."
             pl.move(x + 1, y, 1)
 
 
@@ -122,20 +152,25 @@ if __name__ == "__main__":
     screen = pg.display.set_mode(SIZE)
     group_sprites = pg.sprite.Group()
     clock = time.Clock()
+    time_bullet = 0
     tile_images = {
         "bricks": pg.image.load(os.path.join(PIC, "bricks.png")),
         "water": pg.image.load(os.path.join(PIC, "water.png")),
         "empty": pg.image.load(os.path.join(PIC, "grass.png"))
     }
 
-    player_image = pg.image.load(os.path.join(PIC, 'player_1.png'))  # TODO: Поставить игрока
+    player_image = pg.image.load(os.path.join(PIC, 'player_1.png'))
     player2_image = pg.image.load(os.path.join(PIC, 'player_2.png'))
+
+    bullet_image = pg.image.load(os.path.join(PIC, 'bullet.png'))
 
     tile_width = tile_height = 50
 
     player_group = pg.sprite.Group()
 
     tiles_group = pg.sprite.Group()
+
+    bullet_group = pg.sprite.Group()
 
     start_screen()
 
@@ -144,6 +179,10 @@ if __name__ == "__main__":
     level_map = load_level(number_level)
 
     player, player2, level_x, level_y = generate_level(level_map)
+
+    battle_sound = pg.mixer.Sound(os.path.join(SOUND, "tank_duel_music.ogg"))
+    battle_sound.set_volume(0.2)
+    battle_sound.play(-1)
 
     running = True
     while running:
@@ -167,9 +206,21 @@ if __name__ == "__main__":
                     move_player(player, 'left')
                 elif event.key == pg.K_d:
                     move_player(player, 'right')
+
+                elif event.key == pg.K_KP1:
+                    player2.shot()
+                elif event.key == pg.K_e:
+                    player.shot()
         screen.fill(pg.Color('black'))
         tiles_group.draw(screen)
         player_group.draw(screen)
+        bullet_group.draw(screen)
+        bullet_group.update()
+
+        if time_bullet >= 0.3:
+            time_bullet = 0
+        time_bullet += clock.tick() / 1000
+
         pg.display.flip()
         clock.tick(FPS)
     terminate()
