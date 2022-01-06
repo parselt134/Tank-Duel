@@ -12,15 +12,17 @@ class Player(pg.sprite.Sprite):
         self.image = pg.transform.rotate(im, -90 * self.direc)
         self.pos = (pos_x, pos_y)
         self.sign = sign
+        self.lives = 3
+        self.score = 0
         self.rect = self.image.get_rect().move(tile_width * self.pos[0],
-                                               tile_height * self.pos[1])
+                                               tile_height * self.pos[1] + height_panel)
 
     def move(self, x, y, new_direc):
         self.image = pg.transform.rotate(pg.transform.rotate(self.image, 90 * self.direc), -90 * new_direc)
         self.direc = new_direc
         self.pos = (x, y)
         self.rect = self.image.get_rect().move(tile_width * self.pos[0],
-                                               tile_height * self.pos[1])
+                                               tile_height * self.pos[1] + height_panel)
         level_map[y, x] = self.sign
 
 
@@ -29,7 +31,21 @@ class Tile(pg.sprite.Sprite):
         super().__init__(tiles_group)
         self.image = tile_images[tile_type]
         self.rect = self.image.get_rect().move(tile_width * pos_x,
-                                               tile_height * pos_y)
+                                               tile_height * pos_y + height_panel)
+
+
+def panel(scr, x, y, lvs, temp_score, tank_pic):  # x и у -- отступы от левого верхнего угла
+    pg.draw.rect(scr, pg.Color("gray"), (0, y, WIDTH, height_panel))
+    for lv in range(lvs):
+        rect = tank_pic.get_rect()
+        rect.x = x + (30 * lv)
+        rect.y = y + 5
+        scr.blit(tank_pic, rect)
+    font = pg.font.Font(None, 30)
+    text = font.render(str(temp_score), True, (0, 0, 0))
+    text_x = x + WIDTH // 2
+    text_y = y + 5
+    scr.blit(text, (text_x, text_y))
 
 
 def load_level(number):
@@ -76,7 +92,8 @@ def start_screen():
                   "Нажмите любую клавишу", ""
                   "для начала игры"]
     fon = pg.image.load(os.path.join(PIC, "start_screen.png"))
-    screen.blit(fon, (0, 0))
+    screen1 = pg.display.set_mode((500, 500))
+    screen1.blit(fon, (0, 0))
     font = pg.font.Font(None, 35)
     text_coords = 50
     for line in intro_text:
@@ -86,7 +103,7 @@ def start_screen():
         intro_rect.top = text_coords
         intro_rect.x = 10
         text_coords += intro_rect.height
-        screen.blit(string_rendered, intro_rect)
+        screen1.blit(string_rendered, intro_rect)
 
     while True:
         for event in pg.event.get():
@@ -122,9 +139,10 @@ def move_player(pl, movement):  # Здесь pl является сокраще�
 if __name__ == "__main__":
     pg.init()
     pg.display.set_caption("Tank Duel")
+    clock = time.Clock()
+    start_screen()
     screen = pg.display.set_mode(SIZE)
     group_sprites = pg.sprite.Group()
-    clock = time.Clock()
     tile_images = {
         "bricks": pg.image.load(os.path.join(PIC, "bricks.png")),
         "water": pg.image.load(os.path.join(PIC, "water.png")),
@@ -134,13 +152,17 @@ if __name__ == "__main__":
     player_image = pg.image.load(os.path.join(PIC, 'player_1.png'))
     player2_image = pg.image.load(os.path.join(PIC, 'player_2.png'))
 
+    tank_icon = pg.transform.scale(player_image, (30, 30))
+    tank_icon2 = pg.transform.scale(player2_image, (30, 30))
+
     tile_width = tile_height = 50
+
+    # Высота панели (отступ сверху)
+    height_panel = 40
 
     player_group = pg.sprite.Group()
 
     tiles_group = pg.sprite.Group()
-
-    start_screen()
 
     number_level = 1
 
@@ -177,6 +199,8 @@ if __name__ == "__main__":
         screen.fill(pg.Color('black'))
         tiles_group.draw(screen)
         player_group.draw(screen)
+        panel(screen, 0, 0, player.lives, player.score, tank_icon)
+        panel(screen, 0, HEIGHT - height_panel, player2.lives, player2.score, tank_icon2)
         pg.display.flip()
         clock.tick(FPS)
     terminate()
