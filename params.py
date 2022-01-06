@@ -8,4 +8,4 @@ SPRITE = os.path.join(GAMEDIR, 'sprite')
 
 FPS = 60
 
-SIZE = WIDTH, HEIGHT = 500, 500
+SIZE = WIDTH, HEIGHT = 500, 580
