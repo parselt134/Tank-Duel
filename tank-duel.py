@@ -1,6 +1,7 @@
 import pygame as pg
 import numpy as np
 import sys
+import random
 from pygame import time
 from params import *
 
@@ -32,6 +33,24 @@ class Tile(pg.sprite.Sprite):
         self.image = tile_images[tile_type]
         self.rect = self.image.get_rect().move(tile_width * pos_x,
                                                tile_height * pos_y + height_panel)
+
+
+class Bonus(pg.sprite.Sprite):
+    def __init__(self, pos_x, pos_y):
+        super().__init__(bonuses_group)
+        self.bonus_type = random.choice(["buster", "life"])
+        self.image = bonus_images[self.bonus_type]
+        self.rect = self.image.get_rect().move(tile_width * pos_x,
+                                               tile_height * pos_y + height_panel)
+
+
+def generate_bonus():
+    if random.random() > 0.95:
+        x, y = random.randint(0, 9), random.randint(0, 9)
+        while level_map[y, x] != "." and (x != 0 and y != 0 or x != 9 and y != 9):
+            x, y = random.randint(0, 9), random.randint(0, 9)
+        level_map[y, x] = "b"
+        return Bonus(x, y)
 
 
 def panel(scr, x, y, lvs, temp_score, tank_pic):  # x и у -- отступы от левого верхнего угла
@@ -148,6 +167,10 @@ if __name__ == "__main__":
         "water": pg.image.load(os.path.join(PIC, "water.png")),
         "empty": pg.image.load(os.path.join(PIC, "grass.png"))
     }
+    bonus_images = {
+        "buster": pg.image.load(os.path.join(PIC, "buster.png")),
+        "life": pg.image.load(os.path.join(PIC, "life.png"))
+    }
 
     player_image = pg.image.load(os.path.join(PIC, 'player_1.png'))
     player2_image = pg.image.load(os.path.join(PIC, 'player_2.png'))
@@ -161,14 +184,15 @@ if __name__ == "__main__":
     height_panel = 40
 
     player_group = pg.sprite.Group()
-
     tiles_group = pg.sprite.Group()
+    bonuses_group = pg.sprite.Group()
 
     number_level = 1
 
     level_map = load_level(number_level)
 
     player, player2, level_x, level_y = generate_level(level_map)
+    bonus = generate_bonus()
 
     battle_sound = pg.mixer.Sound(os.path.join(SOUND, "tank_duel_music.ogg"))
     battle_sound.set_volume(0.2)
@@ -196,9 +220,19 @@ if __name__ == "__main__":
                     move_player(player, 'left')
                 elif event.key == pg.K_d:
                     move_player(player, 'right')
+        # Проверка наличия бонуса
+        # Вычитать один надо для того, чтобы не проверять тайлы, находящиеся вне игрового окна
+        have_a_bonus = False
+        for i in range(len(level_map) - 1):
+            if "b" in level_map[i]:
+                have_a_bonus = True
+                break
+        if not have_a_bonus:
+            bonus = generate_bonus()
         screen.fill(pg.Color('black'))
         tiles_group.draw(screen)
         player_group.draw(screen)
+        bonuses_group.draw(screen)
         panel(screen, 0, 0, player.lives, player.score, tank_icon)
         panel(screen, 0, HEIGHT - height_panel, player2.lives, player2.score, tank_icon2)
         pg.display.flip()
