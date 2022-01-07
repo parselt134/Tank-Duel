@@ -47,7 +47,7 @@ class Bonus(pg.sprite.Sprite):
 def generate_bonus():
     if random.random() > 0.95:
         x, y = random.randint(0, 9), random.randint(0, 9)
-        while level_map[y, x] != "." and (x != 0 and y != 0 or x != 9 and y != 9):
+        while level_map[y, x] != ".":
             x, y = random.randint(0, 9), random.randint(0, 9)
         level_map[y, x] = "b"
         return Bonus(x, y)
@@ -72,7 +72,7 @@ def load_level(number):
         filename = "level-" + str(number) + ".map"
         filename = os.path.join("levels", filename)
         with open(filename, "r") as mapfile:
-            levelmap = np.array([list(i) for i in [line.strip() for line in mapfile]])
+            levelmap = np.array([list(el) for el in [line.strip() for line in mapfile]])
         return levelmap
     except (FileNotFoundError, IsADirectoryError):
         print("Упс! Что-то пошло не так!")
@@ -92,11 +92,9 @@ def generate_level(level):
                 Tile("water", x, y)
             elif level[y][x] == "@":
                 Tile("empty", x, y)
-                level_map[y, x] = "."
                 new_player = Player(x, y, 2, player_image, "@")
             elif level[y][x] == "%":
                 Tile("empty", x, y)
-                level_map[y, x] = "."
                 new_player2 = Player(x, y, 0, player2_image, "%")
     return new_player, new_player2, x, y
 
