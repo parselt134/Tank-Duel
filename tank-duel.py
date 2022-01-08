@@ -53,6 +53,11 @@ def generate_bonus():
         return Bonus(x, y)
 
 
+def activate_bonus(pl, bns):
+    if bns.bonus_type == "life" and pl.lives < 3:
+        pl.lives += 1
+
+
 def panel(scr, x, y, lvs, temp_score, tank_pic):  # x и у -- отступы от левого верхнего угла
     pg.draw.rect(scr, pg.Color("gray"), (0, y, WIDTH, height_panel))
     for lv in range(lvs):
@@ -139,18 +144,38 @@ def move_player(pl, movement):  # Здесь pl является сокраще�
         if y > 0 and level_map[y - 1, x] == '.':
             level_map[y, x] = "."
             pl.move(x, y - 1, 0)
+        if y > 0 and level_map[y - 1, x] == 'b':
+            level_map[y, x] = "."
+            activate_bonus(pl, bonus)
+            pl.move(x, y - 1, 0)
+            bonus.kill()
     elif movement == 'down':
         if y < level_y - 1 and level_map[y + 1, x] == '.':
             level_map[y, x] = "."
             pl.move(x, y + 1, 2)
+        if y < level_y - 1 and level_map[y + 1, x] == 'b':
+            level_map[y, x] = "."
+            activate_bonus(pl, bonus)
+            pl.move(x, y + 1, 2)
+            bonus.kill()
     elif movement == 'left':
         if x > 0 and level_map[y, x - 1] == '.':
             level_map[y, x] = "."
             pl.move(x - 1, y, 3)
+        elif x > 0 and level_map[y, x - 1] == 'b':
+            level_map[y, x] = "."
+            activate_bonus(pl, bonus)
+            pl.move(x - 1, y, 3)
+            bonus.kill()
     elif movement == 'right':
         if x < level_x - 1 and level_map[y, x + 1] == '.':
             level_map[y, x] = "."
             pl.move(x + 1, y, 1)
+        elif x < level_x - 1 and level_map[y, x + 1] == 'b':
+            level_map[y, x] = "."
+            activate_bonus(pl, bonus)
+            pl.move(x + 1, y, 1)
+            bonus.kill()
 
 
 if __name__ == "__main__":
