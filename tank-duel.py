@@ -24,13 +24,17 @@ class Player(pg.sprite.Sprite):
         level_map[y, x] = self.sign
 
     def shot(self):
-        if self.direc == 0:
+        if self.direc == 0 and (level_map[self.pos[1] - 1, self.pos[0]] == '.'
+                                or level_map[self.pos[1] - 1, self.pos[0]] == '='):
             Bullet(self.pos[0], self.pos[1] - 1, (0, -1))
-        elif self.direc == 1:
+        elif self.direc == 1 and (level_map[self.pos[1], self.pos[0] + 1] == '.'
+                                  or level_map[self.pos[1], self.pos[0] + 1] == '='):
             Bullet(self.pos[0] + 1, self.pos[1], (1, 0))
-        elif self.direc == 2:
+        elif self.direc == 2 and (level_map[self.pos[1] + 1, self.pos[0]] == '.'
+                                  or level_map[self.pos[1] + 1, self.pos[0]] == '='):
             Bullet(self.pos[0], self.pos[1] + 1, (0, 1))
-        elif self.direc == 3:
+        elif self.direc == 3 and (level_map[self.pos[1], self.pos[0] - 1] == '.'
+                                  or level_map[self.pos[1], self.pos[0] - 1] == '='):
             Bullet(self.pos[0] - 1, self.pos[1], (-1, 0))
 
 
@@ -45,12 +49,29 @@ class Bullet(pg.sprite.Sprite):
 
     def update(self):
         if time_bullet >= 0.3:
-            if 10 > self.pos[0] + self.v[0] > -1 and 10 > self.pos[1] + self.v[1] > -1:
+            if level_map[self.pos[1] + self.v[1], self.pos[0] + self.v[0]] == '@':
+                player.kill()
+                self.kill()
+                level_map[self.pos[1] + self.v[1], self.pos[0] + self.v[0]] = '.'
+            elif level_map[self.pos[1] + self.v[1], self.pos[0] + self.v[0]] == '%':
+                player2.kill()
+                self.kill()
+                level_map[self.pos[1] + self.v[1], self.pos[0] + self.v[0]] = '.'
+            elif 10 > self.pos[0] + self.v[0] > -1 and 10 > self.pos[1] + self.v[1] > -1 and\
+                    level_map[self.pos[1] + self.v[1], self.pos[0] + self.v[0]] != '#':
                 self.pos = (self.pos[0] + self.v[0], self.pos[1] + self.v[1])
                 self.rect = self.image.get_rect().move(tile_width * self.pos[0],
                                                        tile_height * self.pos[1])
             else:
                 self.kill()
+        if level_map[self.pos[1], self.pos[0]] == '@':
+            player.kill()
+            self.kill()
+            level_map[self.pos[1], self.pos[0]] = '.'
+        elif level_map[self.pos[1], self.pos[0]] == '%':
+            player2.kill()
+            self.kill()
+            level_map[self.pos[1], self.pos[0]] = '.'
 
 
 class Tile(pg.sprite.Sprite):
