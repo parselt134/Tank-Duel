@@ -14,28 +14,34 @@ class Player(pg.sprite.Sprite):
         self.sign = sign
         self.rect = self.image.get_rect().move(tile_width * self.pos[0],
                                                tile_height * self.pos[1])
+        self.life = True
 
     def move(self, x, y, new_direc):
-        self.image = pg.transform.rotate(pg.transform.rotate(self.image, 90 * self.direc), -90 * new_direc)
-        self.direc = new_direc
-        self.pos = (x, y)
-        self.rect = self.image.get_rect().move(tile_width * self.pos[0],
-                                               tile_height * self.pos[1])
-        level_map[y, x] = self.sign
+        if self.life:
+            self.image = pg.transform.rotate(pg.transform.rotate(self.image, 90 * self.direc), -90 * new_direc)
+            self.direc = new_direc
+            self.pos = (x, y)
+            self.rect = self.image.get_rect().move(tile_width * self.pos[0],
+                                                   tile_height * self.pos[1])
+            level_map[y, x] = self.sign
 
     def shot(self):
-        if self.direc == 0 and (level_map[self.pos[1] - 1, self.pos[0]] == '.'
-                                or level_map[self.pos[1] - 1, self.pos[0]] == '='):
-            Bullet(self.pos[0], self.pos[1] - 1, (0, -1))
-        elif self.direc == 1 and (level_map[self.pos[1], self.pos[0] + 1] == '.'
-                                  or level_map[self.pos[1], self.pos[0] + 1] == '='):
-            Bullet(self.pos[0] + 1, self.pos[1], (1, 0))
-        elif self.direc == 2 and (level_map[self.pos[1] + 1, self.pos[0]] == '.'
-                                  or level_map[self.pos[1] + 1, self.pos[0]] == '='):
-            Bullet(self.pos[0], self.pos[1] + 1, (0, 1))
-        elif self.direc == 3 and (level_map[self.pos[1], self.pos[0] - 1] == '.'
-                                  or level_map[self.pos[1], self.pos[0] - 1] == '='):
-            Bullet(self.pos[0] - 1, self.pos[1], (-1, 0))
+        if self.life:
+            if self.direc == 0 and (level_map[self.pos[1] - 1, self.pos[0]] == '.'
+                                    or level_map[self.pos[1] - 1, self.pos[0]] == '='):
+                Bullet(self.pos[0], self.pos[1] - 1, (0, -1))
+            elif self.direc == 1 and (level_map[self.pos[1], self.pos[0] + 1] == '.'
+                                      or level_map[self.pos[1], self.pos[0] + 1] == '='):
+                Bullet(self.pos[0] + 1, self.pos[1], (1, 0))
+            elif self.direc == 2 and (level_map[self.pos[1] + 1, self.pos[0]] == '.'
+                                      or level_map[self.pos[1] + 1, self.pos[0]] == '='):
+                Bullet(self.pos[0], self.pos[1] + 1, (0, 1))
+            elif self.direc == 3 and (level_map[self.pos[1], self.pos[0] - 1] == '.'
+                                      or level_map[self.pos[1], self.pos[0] - 1] == '='):
+                Bullet(self.pos[0] - 1, self.pos[1], (-1, 0))
+
+    def death(self):
+        self.life = False
 
 
 class Bullet(pg.sprite.Sprite):
@@ -50,10 +56,12 @@ class Bullet(pg.sprite.Sprite):
     def update(self):
         if time_bullet >= 0.3:
             if level_map[self.pos[1] + self.v[1], self.pos[0] + self.v[0]] == '@':
+                player.death()
                 player.kill()
                 self.kill()
                 level_map[self.pos[1] + self.v[1], self.pos[0] + self.v[0]] = '.'
             elif level_map[self.pos[1] + self.v[1], self.pos[0] + self.v[0]] == '%':
+                player2.death()
                 player2.kill()
                 self.kill()
                 level_map[self.pos[1] + self.v[1], self.pos[0] + self.v[0]] = '.'
@@ -65,10 +73,12 @@ class Bullet(pg.sprite.Sprite):
             else:
                 self.kill()
         if level_map[self.pos[1], self.pos[0]] == '@':
+            player.death()
             player.kill()
             self.kill()
             level_map[self.pos[1], self.pos[0]] = '.'
         elif level_map[self.pos[1], self.pos[0]] == '%':
+            player2.death()
             player2.kill()
             self.kill()
             level_map[self.pos[1], self.pos[0]] = '.'
