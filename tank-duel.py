@@ -15,6 +15,7 @@ class Player(pg.sprite.Sprite):
         self.sign = sign
         self.lives = 3
         self.score = 0
+        self.buster = 1  # В начале игры очки будут умножаться на один
         self.rect = self.image.get_rect().move(tile_width * self.pos[0],
                                                tile_height * self.pos[1] + height_panel)
 
@@ -54,8 +55,13 @@ def generate_bonus():
 
 
 def activate_bonus(pl, bns):
-    if bns.bonus_type == "life" and pl.lives < 3:
-        pl.lives += 1
+    if bns.bonus_type == "life":
+        if pl.lives < 3:
+            pl.lives += 1
+        pl.score += 100 * pl.buster
+    elif bns.bonus_type == "buster":
+        pl.buster = 2
+        pl.score += 100 * pl.buster
 
 
 def panel(scr, x, y, lvs, temp_score, tank_pic):  # x и у -- отступы от левого верхнего угла
