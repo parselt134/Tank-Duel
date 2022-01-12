@@ -150,19 +150,19 @@ def start_screen():
 def move_player(pl, movement):  # Здесь pl является сокращением от слова player
     x, y = pl.pos
     if movement == 'up':
-        if y > 0 and level_map[y - 1, x] == '.':
+        if y > 0 and level_map[y - 1, x] == '.' and 10 > y - 1:
             level_map[y, x] = "."
             pl.move(x, y - 1, 0)
     elif movement == 'down':
-        if y < level_y - 1 and level_map[y + 1, x] == '.':
+        if y < level_y - 1 and level_map[y + 1, x] == '.' and 10 > y + 1:
             level_map[y, x] = "."
             pl.move(x, y + 1, 2)
     elif movement == 'left':
-        if x > 0 and level_map[y, x - 1] == '.':
+        if x > 0 and level_map[y, x - 1] == '.' and 10 > x - 1:
             level_map[y, x] = "."
             pl.move(x - 1, y, 3)
     elif movement == 'right':
-        if x < level_x - 1 and level_map[y, x + 1] == '.':
+        if x < level_x - 1 and level_map[y, x + 1] == '.' and 10 > x + 1:
             level_map[y, x] = "."
             pl.move(x + 1, y, 1)
 
