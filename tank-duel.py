@@ -9,6 +9,9 @@ from params import *
 class Player(pg.sprite.Sprite):
     def __init__(self, pos_x, pos_y, direc, im, sign):
         super().__init__(player_group)
+        self.spawn_direc = direc
+        self.spawn_pos = (pos_x, pos_y)
+
         self.direc = direc
         self.image = pg.transform.rotate(im, -90 * self.direc)
         self.pos = (pos_x, pos_y)
@@ -19,14 +22,81 @@ class Player(pg.sprite.Sprite):
         self.count_buster = 3  # Количество бустеров после взятия бонуса "Бустер"
         self.rect = self.image.get_rect().move(tile_width * self.pos[0],
                                                tile_height * self.pos[1] + height_panel)
+        self.is_life = True
 
     def move(self, x, y, new_direc):
-        self.image = pg.transform.rotate(pg.transform.rotate(self.image, 90 * self.direc), -90 * new_direc)
-        self.direc = new_direc
-        self.pos = (x, y)
-        self.rect = self.image.get_rect().move(tile_width * self.pos[0],
-                                               tile_height * self.pos[1] + height_panel)
-        level_map[y, x] = self.sign
+        if self.is_life:
+            self.image = pg.transform.rotate(pg.transform.rotate(self.image, 90 * self.direc), -90 * new_direc)
+            self.direc = new_direc
+            self.pos = (x, y)
+            self.rect = self.image.get_rect().move(tile_width * self.pos[0],
+                                                   tile_height * self.pos[1] + height_panel)
+            level_map[y, x] = self.sign
+
+    def shot(self):
+        if self.is_life:
+            if self.direc == 0 and (level_map[self.pos[1] - 1, self.pos[0]] == '.'
+                                    or level_map[self.pos[1] - 1, self.pos[0]] == '='):
+                Bullet(self.pos[0], self.pos[1] - 1, (0, -1))
+            elif self.direc == 1 and (level_map[self.pos[1], self.pos[0] + 1] == '.'
+                                      or level_map[self.pos[1], self.pos[0] + 1] == '='):
+                Bullet(self.pos[0] + 1, self.pos[1], (1, 0))
+            elif self.direc == 2 and (level_map[self.pos[1] + 1, self.pos[0]] == '.'
+                                      or level_map[self.pos[1] + 1, self.pos[0]] == '='):
+                Bullet(self.pos[0], self.pos[1] + 1, (0, 1))
+            elif self.direc == 3 and (level_map[self.pos[1], self.pos[0] - 1] == '.'
+                                      or level_map[self.pos[1], self.pos[0] - 1] == '='):
+                Bullet(self.pos[0] - 1, self.pos[1], (-1, 0))
+
+    def death(self):
+        self.lives -= 1
+        if self.lives <= 0:
+            self.is_life = False
+            self.kill()
+        else:
+            self.image = pg.transform.rotate(self.image, 90 * self.direc)
+            self.direc = self.spawn_direc
+            self.image = pg.transform.rotate(self.image, -90 * self.direc)
+            self.pos = (self.spawn_pos[0], self.spawn_pos[1])
+            self.rect = self.image.get_rect().move(tile_width * self.pos[0],
+                                                   tile_height * self.pos[1] + height_panel)
+
+
+
+class Bullet(pg.sprite.Sprite):
+    def __init__(self, pos_x, pos_y, v):
+        super().__init__(bullet_group)
+        self.v = v
+        self.image = bullet_image
+        self.pos = (pos_x, pos_y)
+        self.rect = self.image.get_rect().move(tile_width * pos_x,
+                                               tile_height * pos_y + height_panel)
+
+    def update(self):
+        if time_bullet >= 0.3:
+            if level_map[self.pos[1] + self.v[1], self.pos[0] + self.v[0]] == '@':
+                player.death()
+                self.kill()
+                level_map[self.pos[1] + self.v[1], self.pos[0] + self.v[0]] = '.'
+            elif level_map[self.pos[1] + self.v[1], self.pos[0] + self.v[0]] == '%':
+                player2.death()
+                self.kill()
+                level_map[self.pos[1] + self.v[1], self.pos[0] + self.v[0]] = '.'
+            elif 10 > self.pos[0] + self.v[0] > -1 and 10 > self.pos[1] + self.v[1] > -1 and\
+                    level_map[self.pos[1] + self.v[1], self.pos[0] + self.v[0]] != '#':
+                self.pos = (self.pos[0] + self.v[0], self.pos[1] + self.v[1])
+                self.rect = self.image.get_rect().move(tile_width * self.pos[0],
+                                                       tile_height * self.pos[1] + height_panel)
+            else:
+                self.kill()
+        if level_map[self.pos[1], self.pos[0]] == '@':
+            player.death()
+            self.kill()
+            level_map[self.pos[1], self.pos[0]] = '.'
+        elif level_map[self.pos[1], self.pos[0]] == '%':
+            player2.death()
+            self.kill()
+            level_map[self.pos[1], self.pos[0]] = '.'
 
 
 class Tile(pg.sprite.Sprite):
@@ -153,7 +223,7 @@ def start_screen():
 def move_player(pl, movement):  # Здесь pl является сокращением от слова player
     x, y = pl.pos
     if movement == 'up':
-        if y > 0 and level_map[y - 1, x] == '.':
+        if y > 0 and level_map[y - 1, x] == '.' and 10 > y - 1:
             level_map[y, x] = "."
             pl.move(x, y - 1, 0)
         if y > 0 and level_map[y - 1, x] == 'b':
@@ -162,7 +232,7 @@ def move_player(pl, movement):  # Здесь pl является сокраще�
             pl.move(x, y - 1, 0)
             bonus.kill()
     elif movement == 'down':
-        if y < level_y - 1 and level_map[y + 1, x] == '.':
+        if y < level_y - 1 and level_map[y + 1, x] == '.' and 10 > y + 1:
             level_map[y, x] = "."
             pl.move(x, y + 1, 2)
         if y < level_y - 1 and level_map[y + 1, x] == 'b':
@@ -171,7 +241,7 @@ def move_player(pl, movement):  # Здесь pl является сокраще�
             pl.move(x, y + 1, 2)
             bonus.kill()
     elif movement == 'left':
-        if x > 0 and level_map[y, x - 1] == '.':
+        if x > 0 and level_map[y, x - 1] == '.' and 10 > x - 1:
             level_map[y, x] = "."
             pl.move(x - 1, y, 3)
         elif x > 0 and level_map[y, x - 1] == 'b':
@@ -180,7 +250,7 @@ def move_player(pl, movement):  # Здесь pl является сокраще�
             pl.move(x - 1, y, 3)
             bonus.kill()
     elif movement == 'right':
-        if x < level_x - 1 and level_map[y, x + 1] == '.':
+        if x < level_x - 1 and level_map[y, x + 1] == '.' and 10 > x + 1:
             level_map[y, x] = "."
             pl.move(x + 1, y, 1)
         elif x < level_x - 1 and level_map[y, x + 1] == 'b':
@@ -197,6 +267,7 @@ if __name__ == "__main__":
     start_screen()
     screen = pg.display.set_mode(SIZE)
     group_sprites = pg.sprite.Group()
+    time_bullet = 0
     tile_images = {
         "bricks": pg.image.load(os.path.join(PIC, "bricks.png")),
         "water": pg.image.load(os.path.join(PIC, "water.png")),
@@ -212,6 +283,7 @@ if __name__ == "__main__":
 
     tank_icon = pg.transform.scale(player_image, (30, 30))
     tank_icon2 = pg.transform.scale(player2_image, (30, 30))
+    bullet_image = pg.image.load(os.path.join(PIC, 'bullet.png'))
 
     tile_width = tile_height = 50
 
@@ -221,6 +293,7 @@ if __name__ == "__main__":
     player_group = pg.sprite.Group()
     tiles_group = pg.sprite.Group()
     bonuses_group = pg.sprite.Group()
+    bullet_group = pg.sprite.Group()
 
     number_level = 1
 
@@ -255,6 +328,20 @@ if __name__ == "__main__":
                     move_player(player, 'left')
                 elif event.key == pg.K_d:
                     move_player(player, 'right')
+                elif event.key == pg.K_KP1:
+                    player2.shot()
+                elif event.key == pg.K_e:
+                    player.shot()
+        screen.fill(pg.Color('black'))
+        tiles_group.draw(screen)
+        player_group.draw(screen)
+        bonuses_group.draw(screen)
+        bullet_group.draw(screen)
+        bullet_group.update()
+
+        if time_bullet >= 0.3:
+            time_bullet = 0
+        time_bullet += clock.tick() / 1000
         # Проверка наличия бонуса
         # Вычитать один надо для того, чтобы не проверять тайлы, находящиеся вне игрового окна
         have_a_bonus = False
@@ -264,12 +351,9 @@ if __name__ == "__main__":
                 break
         if not have_a_bonus:
             bonus = generate_bonus()
-        screen.fill(pg.Color('black'))
-        tiles_group.draw(screen)
-        player_group.draw(screen)
-        bonuses_group.draw(screen)
         panel(screen, 0, 0, player.lives, player.score, tank_icon)
         panel(screen, 0, HEIGHT - height_panel, player2.lives, player2.score, tank_icon2)
+
         pg.display.flip()
         clock.tick(FPS)
     terminate()
