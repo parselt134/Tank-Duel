@@ -80,3 +80,6 @@
 
 ## Игровое поле
 ![screen-02](./pic/screen-02.png 'Игровое поле')
+
+## Game Over
+![screen-03](./pic/screen-03.png 'Game Over')
