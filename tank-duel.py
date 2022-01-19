@@ -2,7 +2,7 @@ import pygame as pg
 import numpy as np
 import sys
 import random
-from pygame import time
+import time
 from params import *
 
 
@@ -62,7 +62,6 @@ class Player(pg.sprite.Sprite):
                                                    tile_height * self.pos[1] + height_panel)
 
 
-
 class Bullet(pg.sprite.Sprite):
     def __init__(self, pos_x, pos_y, v):
         super().__init__(bullet_group)
@@ -76,10 +75,12 @@ class Bullet(pg.sprite.Sprite):
         if time_bullet >= 0.3:
             if level_map[self.pos[1] + self.v[1], self.pos[0] + self.v[0]] == '@':
                 player.death()
+                player2.score += 1000 * player2.buster
                 self.kill()
                 level_map[self.pos[1] + self.v[1], self.pos[0] + self.v[0]] = '.'
             elif level_map[self.pos[1] + self.v[1], self.pos[0] + self.v[0]] == '%':
                 player2.death()
+                player.score += 1000 * player.buster
                 self.kill()
                 level_map[self.pos[1] + self.v[1], self.pos[0] + self.v[0]] = '.'
             elif 10 > self.pos[0] + self.v[0] > -1 and 10 > self.pos[1] + self.v[1] > -1 and\
@@ -91,10 +92,12 @@ class Bullet(pg.sprite.Sprite):
                 self.kill()
         if level_map[self.pos[1], self.pos[0]] == '@':
             player.death()
+            player2.score += 1000 * player2.buster
             self.kill()
             level_map[self.pos[1], self.pos[0]] = '.'
         elif level_map[self.pos[1], self.pos[0]] == '%':
             player2.death()
+            player.score += 1000 * player.buster
             self.kill()
             level_map[self.pos[1], self.pos[0]] = '.'
 
@@ -140,6 +143,32 @@ def activate_bonus(pl, bns):
         pl.count_buster = 3
 
 
+def load_hiscore():
+    try:
+        with open(os.path.join(GAMEDIR, "hiscore.txt"), "r") as f:
+            return int(f.read())
+    except FileNotFoundError or ValueError:
+        return 0
+
+
+def save_hiscore(hi_scr):
+    with open(os.path.join(GAMEDIR, "hiscore.txt"), "w") as f:
+        f.write(str(hi_scr))
+
+
+def victory_label(scr):
+    if not player.is_life and not player2.is_life:
+        game_over = "Ничья!"
+    else:
+        game_over = "Первый игрок победил!" if player.is_life else "Второй игрок победил!"
+    font = pg.font.Font(None, 35)
+    text = font.render(game_over, True, pg.Color("red"), pg.Color("gray"))
+    text_x = WIDTH // 2 - text.get_width() // 2
+    text_y = HEIGHT // 2 - text.get_height() // 2
+    scr.blit(text, (text_x, text_y))
+    pg.display.update()
+
+
 def panel(scr, x, y, lvs, temp_score, tank_pic):  # x и у -- отступы от левого верхнего угла
     pg.draw.rect(scr, pg.Color("gray"), (0, y, WIDTH, height_panel))
     for lv in range(lvs):
@@ -152,6 +181,33 @@ def panel(scr, x, y, lvs, temp_score, tank_pic):  # x и у -- отступы о
     text_x = x + WIDTH // 2
     text_y = y + 5
     scr.blit(text, (text_x, text_y))
+
+
+def final_screen():
+    intro_text = ["Game Over!", "",
+                  f"Рекорд: {highscore}"]
+    fon = pg.image.load(os.path.join(PIC, "start_screen.png"))
+    screen1 = pg.display.set_mode((500, 500))
+    screen1.blit(fon, (0, 0))
+    font = pg.font.Font(None, 35)
+    text_coords = 50
+    for line in intro_text:
+        string_rendered = font.render(line, True, pg.Color('white'))
+        intro_rect = string_rendered.get_rect()
+        text_coords += 10
+        intro_rect.top = text_coords
+        intro_rect.x = 10
+        text_coords += intro_rect.height
+        screen1.blit(string_rendered, intro_rect)
+    run_gameover = True
+    while run_gameover:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                save_hiscore(highscore)
+                run_gameover = False
+        pg.display.flip()
+        clock.tick(FPS)
+    terminate()
 
 
 def load_level(number):
@@ -192,9 +248,10 @@ def terminate():
 
 
 def start_screen():
-    intro_text = ["Tank Duel", "", "",
-                  "Нажмите любую клавишу", ""
-                  "для начала игры"]
+    intro_text = ["Tank Duel", "",
+                  "Нажмите любую клавишу",
+                  "для начала игры.", "", "",
+                  f"Рекорд: {load_hiscore()}"]
     fon = pg.image.load(os.path.join(PIC, "start_screen.png"))
     screen1 = pg.display.set_mode((500, 500))
     screen1.blit(fon, (0, 0))
@@ -220,13 +277,19 @@ def start_screen():
         clock.tick(FPS)
 
 
+def play_battle_music():
+    battle_sound = pg.mixer.Sound(os.path.join(SOUND, "tank_duel_music.ogg"))
+    battle_sound.set_volume(0.2)
+    battle_sound.play(-1)
+
+
 def move_player(pl, movement):  # Здесь pl является сокращением от слова player
     x, y = pl.pos
     if movement == 'up':
         if y > 0 and level_map[y - 1, x] == '.' and 10 > y - 1:
             level_map[y, x] = "."
             pl.move(x, y - 1, 0)
-        if y > 0 and level_map[y - 1, x] == 'b':
+        elif y > 0 and level_map[y - 1, x] == 'b':
             level_map[y, x] = "."
             activate_bonus(pl, bonus)
             pl.move(x, y - 1, 0)
@@ -235,7 +298,7 @@ def move_player(pl, movement):  # Здесь pl является сокраще�
         if y < level_y - 1 and level_map[y + 1, x] == '.' and 10 > y + 1:
             level_map[y, x] = "."
             pl.move(x, y + 1, 2)
-        if y < level_y - 1 and level_map[y + 1, x] == 'b':
+        elif y < level_y - 1 and level_map[y + 1, x] == 'b':
             level_map[y, x] = "."
             activate_bonus(pl, bonus)
             pl.move(x, y + 1, 2)
@@ -263,7 +326,7 @@ def move_player(pl, movement):  # Здесь pl является сокраще�
 if __name__ == "__main__":
     pg.init()
     pg.display.set_caption("Tank Duel")
-    clock = time.Clock()
+    clock = pg.time.Clock()
     start_screen()
     screen = pg.display.set_mode(SIZE)
     group_sprites = pg.sprite.Group()
@@ -296,20 +359,24 @@ if __name__ == "__main__":
     bullet_group = pg.sprite.Group()
 
     number_level = 1
+    max_level = len(os.listdir("levels"))
+    highscore = load_hiscore()
 
     level_map = load_level(number_level)
 
     player, player2, level_x, level_y = generate_level(level_map)
     bonus = generate_bonus()
 
-    battle_sound = pg.mixer.Sound(os.path.join(SOUND, "tank_duel_music.ogg"))
-    battle_sound.set_volume(0.2)
-    battle_sound.play(-1)
+    play_battle_music()
+
+    victory_music = pg.mixer.Sound(os.path.join(SOUND, "victory.ogg"))
+    victory_music.set_volume(0.35)
 
     running = True
     while running:
         for event in pg.event.get():
             if event.type == pg.QUIT:
+                save_hiscore(highscore)
                 running = False
             elif event.type == pg.KEYDOWN:
                 if event.key == pg.K_UP:
@@ -339,21 +406,38 @@ if __name__ == "__main__":
         bullet_group.draw(screen)
         bullet_group.update()
 
+        panel(screen, 0, 0, player.lives, player.score, tank_icon)
+        panel(screen, 0, HEIGHT - height_panel, player2.lives, player2.score, tank_icon2)
+
         if time_bullet >= 0.3:
             time_bullet = 0
-        time_bullet += clock.tick() / 1000
+        time_bullet += clock.tick() / 50
         # Проверка наличия бонуса
-        # Вычитать один надо для того, чтобы не проверять тайлы, находящиеся вне игрового окна
+        # Вычитать два надо для того, чтобы не проверять тайлы, находящиеся вне игрового окна
         have_a_bonus = False
-        for i in range(len(level_map) - 1):
+        for i in range(len(level_map) - 2):
             if "b" in level_map[i]:
                 have_a_bonus = True
                 break
         if not have_a_bonus:
             bonus = generate_bonus()
-        panel(screen, 0, 0, player.lives, player.score, tank_icon)
-        panel(screen, 0, HEIGHT - height_panel, player2.lives, player2.score, tank_icon2)
-
+        if not player.is_life or not player2.is_life:
+            victory_label(screen)
+            # Загрузка следующего уровня
+            pg.mixer.stop()
+            player_group, bonuses_group, bullet_group = pg.sprite.Group(), pg.sprite.Group(), pg.sprite.Group()
+            victory_music.play()
+            time.sleep(victory_music.get_length())
+            number_level += 1
+            if number_level <= max_level:
+                level_map = load_level(number_level)
+            else:
+                final_screen()
+            player, player2, level_x, level_y = generate_level(level_map)
+            bonus = generate_bonus()
+            play_battle_music()
+        if player.score > highscore or player2.score > highscore:
+            highscore = max(player.score, player2.score)
         pg.display.flip()
         clock.tick(FPS)
     terminate()
