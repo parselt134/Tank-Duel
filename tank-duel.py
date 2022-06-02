@@ -3,6 +3,9 @@ import numpy as np
 import sys
 import random
 import time
+
+import pygame.time
+
 from params import *
 
 
@@ -438,7 +441,10 @@ if __name__ == "__main__":
             pg.mixer.stop()
             player_group, bonuses_group, bullet_group = pg.sprite.Group(), pg.sprite.Group(), pg.sprite.Group()
             victory_music.play()
+
             time.sleep(victory_music.get_length())
+            pg.event.clear()
+
             number_level += 1
             if number_level <= max_level:
                 level_map = load_level(number_level)
