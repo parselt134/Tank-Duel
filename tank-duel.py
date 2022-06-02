@@ -12,7 +12,7 @@ class Player(pg.sprite.Sprite):
         self.spawn_direc = direc
         self.spawn_pos = (pos_x, pos_y)
 
-        self.direc = direc
+        self.direc = direc  # 0 -- вверх, 1 -- вправо, 2 -- вниз, 3 -- влево
         self.image = pg.transform.rotate(im, -90 * self.direc)
         self.pos = (pos_x, pos_y)
         self.sign = sign
@@ -32,6 +32,24 @@ class Player(pg.sprite.Sprite):
             self.rect = self.image.get_rect().move(tile_width * self.pos[0],
                                                    tile_height * self.pos[1] + height_panel)
             level_map[y, x] = self.sign
+
+    def change_direction(self, new_direc):
+        self.image = pg.transform.rotate(pg.transform.rotate(self.image, 90 * self.direc), -90 * new_direc)
+        self.direc = new_direc
+
+    def activate_bonus(self, bns):
+        if self.buster == 2:
+            self.count_buster -= 1
+            if self.count_buster == 0:
+                self.buster = 1
+        if bns.bonus_type == "life":
+            if self.lives < 3:
+                self.lives += 1
+            self.score += 100 * self.buster
+        elif bns.bonus_type == "buster":
+            self.score += 100 * self.buster
+            self.buster = 2
+            self.count_buster = 3
 
     def shot(self):
         if self.is_life:
@@ -126,21 +144,6 @@ def generate_bonus():
             x, y = random.randint(0, 9), random.randint(0, 9)
         level_map[y, x] = "b"
         return Bonus(x, y)
-
-
-def activate_bonus(pl, bns):
-    if pl.buster == 2:
-        pl.count_buster -= 1
-        if pl.count_buster == 0:
-            pl.buster = 1
-    if bns.bonus_type == "life":
-        if pl.lives < 3:
-            pl.lives += 1
-        pl.score += 100 * pl.buster
-    elif bns.bonus_type == "buster":
-        pl.score += 100 * pl.buster
-        pl.buster = 2
-        pl.count_buster = 3
 
 
 def load_hiscore():
@@ -291,36 +294,44 @@ def move_player(pl, movement):  # Здесь pl является сокраще�
             pl.move(x, y - 1, 0)
         elif y > 0 and level_map[y - 1, x] == 'b':
             level_map[y, x] = "."
-            activate_bonus(pl, bonus)
+            pl.activate_bonus(bonus)
             pl.move(x, y - 1, 0)
             bonus.kill()
+        else:
+            pl.change_direction(0)
     elif movement == 'down':
         if y < level_y - 1 and level_map[y + 1, x] == '.' and 10 > y + 1:
             level_map[y, x] = "."
             pl.move(x, y + 1, 2)
         elif y < level_y - 1 and level_map[y + 1, x] == 'b':
             level_map[y, x] = "."
-            activate_bonus(pl, bonus)
+            pl.activate_bonus(bonus)
             pl.move(x, y + 1, 2)
             bonus.kill()
+        else:
+            pl.change_direction(2)
     elif movement == 'left':
         if x > 0 and level_map[y, x - 1] == '.' and 10 > x - 1:
             level_map[y, x] = "."
             pl.move(x - 1, y, 3)
         elif x > 0 and level_map[y, x - 1] == 'b':
             level_map[y, x] = "."
-            activate_bonus(pl, bonus)
+            pl.activate_bonus(bonus)
             pl.move(x - 1, y, 3)
             bonus.kill()
+        else:
+            pl.change_direction(3)
     elif movement == 'right':
         if x < level_x - 1 and level_map[y, x + 1] == '.' and 10 > x + 1:
             level_map[y, x] = "."
             pl.move(x + 1, y, 1)
         elif x < level_x - 1 and level_map[y, x + 1] == 'b':
             level_map[y, x] = "."
-            activate_bonus(pl, bonus)
+            pl.activate_bonus(bonus)
             pl.move(x + 1, y, 1)
             bonus.kill()
+        else:
+            pl.change_direction(1)
 
 
 if __name__ == "__main__":
